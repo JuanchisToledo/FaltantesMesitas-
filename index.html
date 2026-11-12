@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Faltantes de las mesitas</title>
+<style>
+:root {
+  --bg: #f6f5f1; --surface: #ffffff; --text: #1d1d1b; --muted: #6b6a64; --line: #e4e2da;
+  --a0: #c2410c; --t0: #fdeee4; --a1: #1d4ed8; --t1: #e6edfd;
+  --a2: #15803d; --t2: #e3f5e9; --a3: #7e22ce; --t3: #f1e6fb;
+  --danger: #b91c1c; --warn: #b45309; --warnbg: #fef3c7;
+  box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #151513; --surface: #201f1c; --text: #f1efe8; --muted: #a09e94; --line: #34332e;
+    --a0: #fb923c; --t0: #3a2316; --a1: #7aa2ff; --t1: #1a2542; --a2: #4ade80; --t2: #14301d;
+    --a3: #c084fc; --t3: #2c1a3d; --danger: #f87171; --warn: #fbbf24; --warnbg: #3a2f10; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #151513; --surface: #201f1c; --text: #f1efe8; --muted: #a09e94; --line: #34332e;
+  --a0: #fb923c; --t0: #3a2316; --a1: #7aa2ff; --t1: #1a2542; --a2: #4ade80; --t2: #14301d;
+  --a3: #c084fc; --t3: #2c1a3d; --danger: #f87171; --warn: #fbbf24; --warnbg: #3a2f10; color-scheme: dark;
+}
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.4; -webkit-text-size-adjust: 100%; }
+main { max-width: 640px; margin: 0 auto; padding: 20px 16px 96px; }
+h1 { font-size: 1.5rem; margin: 4px 0 4px; letter-spacing: -0.01em; }
+.sub { color: var(--muted); margin: 0 0 14px; font-size: 0.95rem; }
+.top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.me { text-align: right; font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
+.me b { color: var(--text); display: block; max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+.role { display: inline-block; font-size: 0.75rem; font-weight: 600; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); margin: 3px 0; }
+.bar { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
+.btn { font: inherit; font-weight: 600; font-size: 0.92rem; color: var(--text); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 10px; padding: 0 14px; min-height: 44px; cursor: pointer; }
+.btn.on { background: var(--text); color: var(--bg); }
+.btn.danger { color: var(--danger); }
+.btn.primary { background: var(--text); color: var(--bg); }
+.btn:disabled { opacity: .5; cursor: default; }
+.badge { display: inline-block; min-width: 20px; padding: 0 6px; margin-left: 6px; border-radius: 999px; background: var(--danger); color: #fff; font-size: .75rem; line-height: 20px; text-align: center; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; margin-bottom: 18px; overflow: hidden; }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px; background: var(--tint); border-bottom: 1px solid var(--line); }
+.card h2 { margin: 0; font-size: 1.05rem; color: var(--accent); }
+.count { font-size: .8rem; font-weight: 600; color: var(--accent); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; }
+.add { display: flex; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+input[type="text"], select { flex: 1; min-width: 0; font: inherit; font-size: 16px; color: var(--text); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+input[type="text"]:focus, select:focus { outline: 2px solid var(--accent, var(--text)); outline-offset: 1px; }
+.add button { font: inherit; font-weight: 600; color: #fff; background: var(--accent); border: 0; border-radius: 10px; padding: 0 16px; min-height: 44px; cursor: pointer; }
+:root[data-theme="dark"] .add button { color: #151513; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .add button { color: #151513; } }
+.add button:disabled { opacity: .5; }
+ul { list-style: none; margin: 0; padding: 0; }
+li { display: flex; align-items: center; gap: 12px; padding: 4px 16px; border-bottom: 1px solid var(--line); min-height: 56px;
+  transition: opacity .25s, transform .25s, max-height .3s; max-height: 220px; }
+li:last-child { border-bottom: 0; }
+li.out { opacity: 0; transform: translateX(24px); max-height: 0; min-height: 0; padding-top: 0; padding-bottom: 0; overflow: hidden; }
+.check { flex: none; width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--accent); background: transparent; cursor: pointer;
+  display: grid; place-items: center; color: transparent; font-size: 18px; line-height: 1; padding: 0; }
+.check:hover, .check:focus-visible { background: var(--tint); color: var(--accent); outline: none; }
+.dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); margin: 0 11px; }
+.txt { flex: 1; min-width: 0; overflow-wrap: anywhere; padding: 10px 0; }
+.txt small { display: block; color: var(--muted); font-size: .75rem; }
+li input[type="text"] { padding: 8px 10px; }
+.empty { padding: 22px 16px; text-align: center; color: var(--muted); display: block; min-height: 0; }
+.note { text-align: center; color: var(--muted); font-size: .85rem; margin: 6px 0 0; }
+.err { color: var(--danger); }
+.newsec { display: flex; gap: 8px; margin-bottom: 18px; }
+.center { max-width: 460px; margin: 12vh auto 0; text-align: center; }
+.center .card { padding: 24px 20px; margin-bottom: 14px; }
+.center p { color: var(--muted); }
+.steps { text-align: left; font-size: .92rem; color: var(--text); padding-left: 18px; }
+.member { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.member:last-child { border-bottom: 0; }
+.member.pend { background: var(--warnbg); }
+.minfo { flex: 1 1 160px; min-width: 0; }
+.minfo b, .minfo span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.minfo span { color: var(--muted); font-size: .8rem; }
+.member select { flex: 0 0 auto; width: 130px; }
+#toast { position: fixed; left: 50%; transform: translateX(-50%) translateY(20px); bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  background: var(--text); color: var(--bg); padding: 10px 14px; border-radius: 12px; display: flex; align-items: center; gap: 12px;
+  opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; max-width: calc(100% - 32px); font-size: .92rem; }
+#toast.show { opacity: 1; transform: translateX(-50%); pointer-events: auto; }
+#toast button { font: inherit; font-weight: 700; background: none; border: 0; color: inherit; text-decoration: underline; cursor: pointer; padding: 6px; }
+</style>
+</head>
+<body>
+<main id="app"></main>
+<div id="toast" role="status"><span id="toast-msg"></span><button type="button" id="toast-undo">Deshacer</button></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+/* ============================================================
+   1) PEGÁ AQUÍ LA CONFIGURACIÓN DE TU PROYECTO DE FIREBASE
+   (Consola de Firebase > Configuración del proyecto > Tus apps > Web)
+   ============================================================ */
+var firebaseConfig = {
+  apiKey: "AIzaSyBJvSbK3lDyxy8yfmMPE_d5l8IpWkMoMfs",
+  authDomain: "faltantes-en-mesita.firebaseapp.com",
+  projectId: "faltantes-en-mesita",
+  appId: "1:678572128455:web:7f148825e41fe082cf66e2"
+};
+
+(function () {
+  var ROLES = { pending: "Pendiente", blocked: "Bloqueado", reader: "Lector", editor: "Editor", admin: "Admin" };
+  var DEFAULT_SECTIONS = ["Mesita de Civil", "Mesita de Electromecánica y Mecánica"];
+  var ready = firebaseConfig.apiKey && firebaseConfig.apiKey !== "PEGAR_AQUI";
+  var app = document.getElementById("app");
+  var auth, db, authUser = null, me = null;
+  var sections = [], items = [], users = [], secLoaded = false, itemsLoaded = false;
+  var subMe = null, subData = [], activeRole = null;
+  var view = "listas", editMode = false, drafts = {}, pendingDel = null, lastRemoved = null, toastTimer = null, msg = "";
+
+  function mk(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function isMember() { return me && (me.role === "reader" || me.role === "editor" || me.role === "admin"); }
+  function canWrite() { return me && (me.role === "editor" || me.role === "admin"); }
+  function isAdmin() { return me && me.role === "admin"; }
+  function firstName() { var n = (authUser && (authUser.displayName || authUser.email)) || ""; return n.split(" ")[0]; }
+  function errText(e, fb) { return e && e.code === "permission-denied" ? "No tenés permiso para hacer esto." : fb; }
+
+  function showToast(text, canUndo) {
+    document.getElementById("toast-msg").textContent = text;
+    document.getElementById("toast-undo").style.display = canUndo ? "" : "none";
+    var t = document.getElementById("toast"); t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove("show"); lastRemoved = null; }, 6000);
+  }
+  document.getElementById("toast-undo").addEventListener("click", function () {
+    if (!lastRemoved) return;
+    var r = lastRemoved; lastRemoved = null;
+    db.collection("items").doc(r.id).set(r.data).catch(function () { msg = "No se pudo deshacer."; render(); });
+    document.getElementById("toast").classList.remove("show");
+  });
+
+  function draftInput(key, value, placeholder, max) {
+    var inp = mk("input"); inp.type = "text"; inp.maxLength = max; inp.autocomplete = "off"; inp.dataset.key = key;
+    if (placeholder) inp.placeholder = placeholder;
+    inp.value = drafts[key] != null ? drafts[key] : value;
+    inp.addEventListener("input", function () { drafts[key] = inp.value; });
+    return inp;
+  }
+  function clean(v) { return v.trim().replace(/\s+/g, " "); }
+
+  /* ---------- datos ---------- */
+  function stopData() { subData.forEach(function (u) { try { u(); } catch (e) {} }); subData = []; sections = []; items = []; users = []; secLoaded = itemsLoaded = false; }
+  function fail() { msg = "Se perdió la conexión o falta permiso para leer los datos."; render(); }
+  function startData(role) {
+    if (role === "reader" || role === "editor" || role === "admin") {
+      subData.push(db.collection("sections").orderBy("order").onSnapshot(function (s) {
+        sections = s.docs.map(function (d) { return { id: d.id, name: String(d.data().name || ""), order: d.data().order || 0 }; });
+        secLoaded = true; render();
+      }, fail));
+      subData.push(db.collection("items").orderBy("createdAt").onSnapshot(function (s) {
+        items = s.docs.map(function (d) { var v = d.data(); return { id: d.id, text: String(v.text || ""), sectionId: String(v.sectionId || ""), createdAt: v.createdAt || 0, by: String(v.by || "") }; });
+        itemsLoaded = true; msg = ""; render();
+      }, fail));
+    }
+    if (role === "admin") {
+      subData.push(db.collection("users").onSnapshot(function (s) {
+        users = s.docs.map(function (d) { var v = d.data(); return { uid: d.id, name: String(v.name || ""), email: String(v.email || ""), role: String(v.role || "pending"), createdAt: v.createdAt || 0 }; });
+        render();
+      }, function () {}));
+    }
+  }
+
+  function init() {
+    if (!ready) { render(); return; }
+    firebase.initializeApp(firebaseConfig);
+    auth = firebase.auth(); db = firebase.firestore();
+    auth.onAuthStateChanged(function (u) {
+      if (subMe) { subMe(); subMe = null; }
+      stopData(); activeRole = null; me = null; authUser = u; view = "listas"; editMode = false;
+      if (!u) { render(); return; }
+      render();
+      var ref = db.collection("users").doc(u.uid);
+      ref.get().then(function (snap) {
+        if (snap.exists) return;
+        return ref.set({ name: u.displayName || "", email: u.email || "", role: "pending", createdAt: Date.now() });
+      }).then(function () {
+        subMe = ref.onSnapshot(function (snap) {
+          me = snap.exists ? snap.data() : { role: "pending" };
+          if (me.role !== activeRole) { stopData(); activeRole = me.role; startData(me.role); }
+          render();
+        }, function () { msg = "No se pudo leer tu perfil. Revisá tu conexión."; render(); });
+      }).catch(function () { msg = "No se pudo iniciar. Revisá la configuración de Firebase y las reglas."; render(); });
+    });
+  }
+
+  function signIn() {
+    var p = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(p).catch(function (e) {
+      if (e && (e.code === "auth/popup-blocked" || e.code === "auth/operation-not-supported-in-this-environment")) auth.signInWithRedirect(p);
+      else if (e && e.code === "auth/unauthorized-domain") { msg = "Este dominio no está autorizado en Firebase (Authentication > Configuración > Dominios autorizados)."; render(); }
+      else if (!e || e.code !== "auth/popup-closed-by-user") { msg = "No se pudo iniciar sesión."; render(); }
+    });
+  }
+
+  /* ---------- pantallas ---------- */
+  function render() {
+    var ae = document.activeElement, fk = null, fs = 0, fe = 0;
+    if (ae && ae.dataset && ae.dataset.key) { fk = ae.dataset.key; fs = ae.selectionStart; fe = ae.selectionEnd; }
+    app.textContent = "";
+    if (!ready) setupScreen();
+    else if (!authUser) loginScreen();
+    else if (!me) centerScreen("Cargando…", "", true);
+    else if (me.role === "pending") centerScreen("Esperando aprobación", "Tu cuenta (" + (authUser.email || "") + ") fue registrada. Un administrador tiene que admitirte antes de que puedas ver la lista. Volvé a entrar más tarde.", true);
+    else if (me.role === "blocked") centerScreen("Acceso denegado", "Un administrador no habilitó tu acceso a esta página.", true);
+    else appScreen();
+    if (fk) {
+      var el = document.querySelector('input[data-key="' + fk.replace(/"/g, '\\"') + '"]');
+      if (el) { el.focus(); try { el.setSelectionRange(fs, fe); } catch (x) {} }
+    }
+  }
+
+  function setupScreen() {
+    var w = mk("div", "center"); var c = mk("div", "card");
+    c.appendChild(mk("h1", null, "Falta la configuración"));
+    c.appendChild(mk("p", null, "Esta página necesita conectarse a tu proyecto de Firebase (gratis). Abrí el archivo index.html con un editor de texto y pegá tu configuración donde dice PEGAR_AQUI. Los pasos están en el archivo LEEME.txt."));
+    w.appendChild(c); app.appendChild(w);
+  }
+  function loginScreen() {
+    var w = mk("div", "center"); var c = mk("div", "card");
+    c.appendChild(mk("h1", null, "Faltantes de las mesitas"));
+    c.appendChild(mk("p", null, "Iniciá sesión con tu cuenta de Google. Si es tu primera vez, un administrador tendrá que admitirte."));
+    var b = mk("button", "btn primary", "Entrar con Google"); b.type = "button"; b.addEventListener("click", signIn);
+    c.appendChild(b); w.appendChild(c);
+    if (msg) w.appendChild(mk("p", "note err", msg));
+    app.appendChild(w);
+  }
+  function centerScreen(title, text, withOut) {
+    var w = mk("div", "center"); var c = mk("div", "card");
+    c.appendChild(mk("h1", null, title));
+    if (text) c.appendChild(mk("p", null, text));
+    if (withOut) { var b = mk("button", "btn", "Cerrar sesión"); b.type = "button"; b.addEventListener("click", function () { auth.signOut(); }); c.appendChild(b); }
+    w.appendChild(c);
+    if (msg) w.appendChild(mk("p", "note err", msg));
+    app.appendChild(w);
+  }
+
+  function appScreen() {
+    var top = mk("div", "top");
+    var l = mk("div");
+    l.appendChild(mk("h1", null, "Faltantes de las mesitas"));
+    l.appendChild(mk("p", "sub", canWrite()
+      ? "Anotá lo que falta. Cuando alguien lo trae, tocá el círculo y desaparece para todos."
+      : "Estás en modo lectura. Pedile a un admin que te dé permiso de editor."));
+    var r = mk("div", "me");
+    r.appendChild(mk("b", null, firstName()));
+    r.appendChild(mk("span", "role", ROLES[me.role] || me.role));
+    var out = mk("button", "btn", "Salir"); out.type = "button"; out.style.minHeight = "36px"; out.style.display = "block"; out.style.marginLeft = "auto";
+    out.addEventListener("click", function () { auth.signOut(); });
+    r.appendChild(out);
+    top.appendChild(l); top.appendChild(r); app.appendChild(top);
+
+    if (isAdmin()) {
+      var bar = mk("div", "bar");
+      var pend = users.filter(function (u) { return u.role === "pending"; }).length;
+      var t1 = mk("button", "btn" + (view === "listas" ? " on" : ""), "Listas"); t1.type = "button";
+      t1.addEventListener("click", function () { view = "listas"; render(); });
+      var t2 = mk("button", "btn" + (view === "miembros" ? " on" : ""), "Integrantes"); t2.type = "button";
+      if (pend) t2.appendChild(mk("span", "badge", String(pend)));
+      t2.addEventListener("click", function () { view = "miembros"; editMode = false; render(); });
+      bar.appendChild(t1); bar.appendChild(t2);
+      if (view === "listas") {
+        var te = mk("button", "btn" + (editMode ? " on" : ""), editMode ? "✓ Salir del modo admin" : "⚙ Modo admin"); te.type = "button";
+        te.addEventListener("click", function () { editMode = !editMode; pendingDel = null; render(); });
+        bar.appendChild(te);
+      }
+      app.appendChild(bar);
+    }
+    if (isAdmin() && view === "miembros") membersView(); else listsView();
+    if (msg) app.appendChild(mk("p", "note err", msg));
+  }
+
+  function listsView() {
+    if (secLoaded && !sections.length) {
+      var c = mk("div", "card"); c.appendChild(mk("div", "empty", isAdmin() ? "Todavía no hay secciones." : "Todavía no hay secciones. Pedile a un admin que las cree."));
+      if (isAdmin()) {
+        var b = mk("button", "btn primary", "Crear secciones iniciales"); b.type = "button"; b.style.margin = "0 16px 16px";
+        b.addEventListener("click", function () {
+          var base = Date.now(), batch = db.batch();
+          DEFAULT_SECTIONS.forEach(function (n, i) { batch.set(db.collection("sections").doc(), { name: n, order: base + i }); });
+          batch.commit().catch(function (e) { msg = errText(e, "No se pudieron crear."); render(); });
+        });
+        c.appendChild(b);
+      }
+      app.appendChild(c);
+    }
+    sections.forEach(function (s, i) {
+      var k = i % 4, mine = items.filter(function (it) { return it.sectionId === s.id; });
+      var card = mk("section", "card");
+      card.style.setProperty("--accent", "var(--a" + k + ")"); card.style.setProperty("--tint", "var(--t" + k + ")");
+      var head = mk("div", "card-head");
+      if (editMode && isAdmin()) {
+        var ni = draftInput("name:" + s.id, s.name, "Nombre de la sección", 60);
+        ni.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); ni.blur(); } });
+        ni.addEventListener("change", function () {
+          var v = clean(ni.value); delete drafts["name:" + s.id];
+          if (!v || v === s.name) { render(); return; }
+          db.collection("sections").doc(s.id).update({ name: v }).catch(function (e) { msg = errText(e, "No se pudo renombrar."); render(); });
+        });
+        head.appendChild(ni);
+        var del = mk("button", "btn danger", pendingDel === s.id ? "¿Seguro?" : "Eliminar"); del.type = "button";
+        del.addEventListener("click", function () {
+          if (pendingDel !== s.id) { pendingDel = s.id; render(); return; }
+          pendingDel = null; var batch = db.batch();
+          mine.forEach(function (it) { batch.delete(db.collection("items").doc(it.id)); });
+          batch.delete(db.collection("sections").doc(s.id));
+          batch.commit().catch(function (e) { msg = errText(e, "No se pudo eliminar."); render(); });
+        });
+        head.appendChild(del);
+      } else {
+        head.appendChild(mk("h2", null, s.name)); head.appendChild(mk("span", "count", String(mine.length)));
+      }
+      card.appendChild(head);
+
+      if (canWrite()) {
+        var add = mk("div", "add");
+        var inp = draftInput("add:" + s.id, "", "¿Qué falta? (ej. yerba, vasos…)", 120); inp.enterKeyHint = "send";
+        var btn = mk("button", null, "Agregar"); btn.type = "button";
+        var go = function () {
+          var text = clean(inp.value); if (!text) return; btn.disabled = true;
+          db.collection("items").add({ text: text, sectionId: s.id, createdAt: Date.now(), by: firstName() }).then(function () {
+            delete drafts["add:" + s.id]; inp.value = ""; msg = ""; inp.focus();
+          }).catch(function (e) { msg = errText(e, "No se pudo agregar."); render(); }).then(function () { btn.disabled = false; });
+        };
+        btn.addEventListener("click", go);
+        inp.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); go(); } });
+        add.appendChild(inp); add.appendChild(btn); card.appendChild(add);
+      }
+
+      var ul = mk("ul");
+      if (itemsLoaded && !mine.length) ul.appendChild(mk("li", "empty", "No falta nada por ahora ✓"));
+      mine.forEach(function (it) {
+        var li = mk("li");
+        if (canWrite()) {
+          var b = mk("button", "check", "✓"); b.type = "button"; b.setAttribute("aria-label", "Marcar como resuelto: " + it.text);
+          b.addEventListener("click", function () {
+            li.classList.add("out");
+            lastRemoved = { id: it.id, data: { text: it.text, sectionId: it.sectionId, createdAt: it.createdAt, by: it.by } };
+            setTimeout(function () {
+              db.collection("items").doc(it.id).delete().then(function () { showToast("Resuelto: " + it.text, true); })
+                .catch(function (e) { li.classList.remove("out"); lastRemoved = null; msg = errText(e, "No se pudo marcar."); render(); });
+            }, 250);
+          });
+          li.appendChild(b);
+        } else li.appendChild(mk("span", "dot"));
+        if (editMode && isAdmin()) {
+          var ti = draftInput("item:" + it.id, it.text, "", 120);
+          ti.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); ti.blur(); } });
+          ti.addEventListener("change", function () {
+            var v = clean(ti.value); delete drafts["item:" + it.id];
+            if (!v || v === it.text) { render(); return; }
+            db.collection("items").doc(it.id).update({ text: v }).catch(function (e) { msg = errText(e, "No se pudo editar."); render(); });
+          });
+          li.appendChild(ti);
+        } else {
+          var tx = mk("span", "txt", it.text);
+          if (it.by) tx.appendChild(mk("small", null, "anotó " + it.by));
+          li.appendChild(tx);
+        }
+        ul.appendChild(li);
+      });
+      card.appendChild(ul); app.appendChild(card);
+    });
+
+    if (editMode && isAdmin()) {
+      var ns = mk("div", "newsec");
+      var ni2 = draftInput("newsec", "", "Nombre de la nueva sección", 60);
+      var nb = mk("button", "btn primary", "Agregar sección"); nb.type = "button";
+      var goS = function () {
+        var v = clean(ni2.value); if (!v) return;
+        db.collection("sections").add({ name: v, order: Date.now() }).then(function () { delete drafts.newsec; ni2.value = ""; })
+          .catch(function (e) { msg = errText(e, "No se pudo agregar."); render(); });
+      };
+      nb.addEventListener("click", goS);
+      ni2.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); goS(); } });
+      ns.appendChild(ni2); ns.appendChild(nb); app.appendChild(ns);
+    }
+  }
+
+  function membersView() {
+    var card = mk("section", "card");
+    card.style.setProperty("--accent", "var(--a1)"); card.style.setProperty("--tint", "var(--t1)");
+    var head = mk("div", "card-head"); head.appendChild(mk("h2", null, "Integrantes")); head.appendChild(mk("span", "count", String(users.length)));
+    card.appendChild(head);
+    var order = { pending: 0, blocked: 3, reader: 2, editor: 2, admin: 1 };
+    var list = users.slice().sort(function (a, b) { return (order[a.role] - order[b.role]) || a.name.localeCompare(b.name); });
+    list.forEach(function (u) {
+      var row = mk("div", "member" + (u.role === "pending" ? " pend" : ""));
+      var info = mk("div", "minfo"); info.appendChild(mk("b", null, u.name || u.email)); info.appendChild(mk("span", null, u.email));
+      row.appendChild(info);
+      var sel = mk("select");
+      ["pending", "reader", "editor", "admin", "blocked"].forEach(function (r) {
+        var o = mk("option", null, ROLES[r]); o.value = r; if (r === u.role) o.selected = true; sel.appendChild(o);
+      });
+      if (u.uid === authUser.uid) sel.disabled = true;
+      sel.addEventListener("change", function () {
+        db.collection("users").doc(u.uid).update({ role: sel.value }).catch(function (e) { msg = errText(e, "No se pudo cambiar el rol."); render(); });
+      });
+      row.appendChild(sel); card.appendChild(row);
+    });
+    if (!list.length) card.appendChild(mk("div", "empty", "Todavía no hay nadie."));
+    app.appendChild(card);
+    app.appendChild(mk("p", "note", "Quien entra por primera vez queda como Pendiente hasta que lo cambies a Lector, Editor o Admin."));
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
