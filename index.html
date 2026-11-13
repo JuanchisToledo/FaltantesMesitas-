@@ -4,11 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Faltantes de las mesitas</title>
+<meta name="theme-color" content="#c2410c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Faltantes">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
 <style>
 :root {
   --bg: #f6f5f1; --surface: #ffffff; --text: #1d1d1b; --muted: #6b6a64; --line: #e4e2da;
   --a0: #c2410c; --t0: #fdeee4; --a1: #1d4ed8; --t1: #e6edfd;
   --a2: #15803d; --t2: #e3f5e9; --a3: #7e22ce; --t3: #f1e6fb;
+  --a4: #b91c1c; --t4: #fde8e8; --a5: #0f766e; --t5: #dcf5f2; --a6: #be185d; --t6: #fce7f3; --a7: #a16207; --t7: #fef3c7;
   --danger: #b91c1c; --warn: #b45309; --warnbg: #fef3c7;
   box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
   color-scheme: light;
@@ -17,13 +25,15 @@
   :root:not([data-theme="light"]) {
     --bg: #151513; --surface: #201f1c; --text: #f1efe8; --muted: #a09e94; --line: #34332e;
     --a0: #fb923c; --t0: #3a2316; --a1: #7aa2ff; --t1: #1a2542; --a2: #4ade80; --t2: #14301d;
-    --a3: #c084fc; --t3: #2c1a3d; --danger: #f87171; --warn: #fbbf24; --warnbg: #3a2f10; color-scheme: dark;
+    --a3: #c084fc; --t3: #2c1a3d;
+    --a4: #f87171; --t4: #3b1919; --a5: #2dd4bf; --t5: #10302c; --a6: #f472b6; --t6: #3a1428; --a7: #fbbf24; --t7: #3a2f10; --danger: #f87171; --warn: #fbbf24; --warnbg: #3a2f10; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #151513; --surface: #201f1c; --text: #f1efe8; --muted: #a09e94; --line: #34332e;
   --a0: #fb923c; --t0: #3a2316; --a1: #7aa2ff; --t1: #1a2542; --a2: #4ade80; --t2: #14301d;
-  --a3: #c084fc; --t3: #2c1a3d; --danger: #f87171; --warn: #fbbf24; --warnbg: #3a2f10; color-scheme: dark;
+  --a3: #c084fc; --t3: #2c1a3d;
+    --a4: #f87171; --t4: #3b1919; --a5: #2dd4bf; --t5: #10302c; --a6: #f472b6; --t6: #3a1428; --a7: #fbbf24; --t7: #3a2f10; --danger: #f87171; --warn: #fbbf24; --warnbg: #3a2f10; color-scheme: dark;
 }
 html { scroll-padding-top: env(safe-area-inset-top, 0px); }
 * { box-sizing: border-box; }
@@ -68,6 +78,10 @@ li.out { opacity: 0; transform: translateX(24px); max-height: 0; min-height: 0; 
 .txt { flex: 1; min-width: 0; overflow-wrap: anywhere; padding: 10px 0; }
 .txt small { display: block; color: var(--muted); font-size: .75rem; }
 li input[type="text"] { padding: 8px 10px; }
+.swatches { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.swatches small { color: var(--muted); font-size: .8rem; margin-right: 2px; }
+.sw { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--surface); background: var(--sc); cursor: pointer; padding: 0; box-shadow: 0 0 0 1px var(--line); }
+.sw.sel { box-shadow: 0 0 0 3px var(--text); }
 .empty { padding: 22px 16px; text-align: center; color: var(--muted); display: block; min-height: 0; }
 .note { text-align: center; color: var(--muted); font-size: .85rem; margin: 6px 0 0; }
 .err { color: var(--danger); }
@@ -155,7 +169,7 @@ var firebaseConfig = {
   function startData(role) {
     if (role === "reader" || role === "editor" || role === "admin") {
       subData.push(db.collection("sections").orderBy("order").onSnapshot(function (s) {
-        sections = s.docs.map(function (d) { return { id: d.id, name: String(d.data().name || ""), order: d.data().order || 0 }; });
+        sections = s.docs.map(function (d) { return { id: d.id, name: String(d.data().name || ""), order: d.data().order || 0, color: d.data().color }; });
         secLoaded = true; render();
       }, fail));
       subData.push(db.collection("items").orderBy("createdAt").onSnapshot(function (s) {
@@ -199,7 +213,7 @@ var firebaseConfig = {
     auth.signInWithPopup(p).catch(function (e) {
       if (e && (e.code === "auth/popup-blocked" || e.code === "auth/operation-not-supported-in-this-environment")) auth.signInWithRedirect(p);
       else if (e && e.code === "auth/unauthorized-domain") { msg = "Este dominio no está autorizado en Firebase (Authentication > Configuración > Dominios autorizados)."; render(); }
-      else if (!e || e.code !== "auth/popup-closed-by-user") { msg = "No se pudo iniciar sesión."; render(); }
+      else if (!e || e.code !== "auth/popup-closed-by-user") { msg = "No se pudo iniciar sesión" + (e && e.code ? " (" + e.code + ")" : "") + "."; render(); }
     });
   }
 
@@ -295,7 +309,7 @@ var firebaseConfig = {
       app.appendChild(c);
     }
     sections.forEach(function (s, i) {
-      var k = i % 4, mine = items.filter(function (it) { return it.sectionId === s.id; });
+      var k = (typeof s.color === "number" && s.color >= 0 && s.color < 8) ? s.color : i % 4, mine = items.filter(function (it) { return it.sectionId === s.id; });
       var card = mk("section", "card");
       card.style.setProperty("--accent", "var(--a" + k + ")"); card.style.setProperty("--tint", "var(--t" + k + ")");
       var head = mk("div", "card-head");
@@ -321,6 +335,20 @@ var firebaseConfig = {
         head.appendChild(mk("h2", null, s.name)); head.appendChild(mk("span", "count", String(mine.length)));
       }
       card.appendChild(head);
+
+      if (editMode && isAdmin()) {
+        var sws = mk("div", "swatches"); sws.appendChild(mk("small", null, "Color:"));
+        for (var n = 0; n < 8; n++) (function (n) {
+          var sw = mk("button", "sw" + (n === k ? " sel" : "")); sw.type = "button";
+          sw.style.setProperty("--sc", "var(--a" + n + ")");
+          sw.setAttribute("aria-label", "Elegir color " + (n + 1));
+          sw.addEventListener("click", function () {
+            db.collection("sections").doc(s.id).update({ color: n }).catch(function (e) { msg = errText(e, "No se pudo cambiar el color."); render(); });
+          });
+          sws.appendChild(sw);
+        })(n);
+        card.appendChild(sws);
+      }
 
       if (canWrite()) {
         var add = mk("div", "add");
