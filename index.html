@@ -85,11 +85,26 @@ li input[type="text"] { padding: 8px 10px; }
 .empty { padding: 22px 16px; text-align: center; color: var(--muted); display: block; min-height: 0; }
 .note { text-align: center; color: var(--muted); font-size: .85rem; margin: 6px 0 0; }
 .err { color: var(--danger); }
+.claim { flex: none; display: flex; flex-direction: column; align-items: center; gap: 2px; width: 66px; background: none; border: 0; padding: 4px 0; cursor: pointer; font: inherit; }
+.claim:disabled { cursor: default; }
+.claim .box { width: 30px; height: 30px; border: 2px solid var(--accent); border-radius: 8px; display: grid; place-items: center; font-size: 16px; line-height: 1; color: var(--surface); }
+.claim.mine .box { background: var(--accent); }
+.claim.other .box { background: var(--tint); border-style: dashed; color: var(--accent); }
+.claim .lab { font-size: .65rem; line-height: 1.1; text-align: center; max-width: 66px; overflow-wrap: anywhere; color: var(--muted); }
+.claim.mine .lab { color: var(--accent); font-weight: 700; }
+.claim:not(:disabled):hover .box { background: var(--tint); }
+#chatlist { max-height: 55vh; min-height: 120px; overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+.msg { max-width: 88%; align-self: flex-start; background: var(--bg); border: 1px solid var(--line); border-radius: 14px 14px 14px 4px; padding: 8px 12px; }
+.msg.me { align-self: flex-end; background: var(--tint); border-radius: 14px 14px 4px 14px; }
+.msg .mh { display: flex; align-items: center; gap: 8px; font-size: .78rem; }
+.msg .mh b { color: var(--accent); }
+.msg .t { color: var(--muted); font-size: .7rem; }
+.msg .mdel { margin-left: auto; background: none; border: 0; color: var(--muted); cursor: pointer; font-size: .8rem; padding: 2px 4px; }
+.msg p { margin: 2px 0 0; overflow-wrap: anywhere; white-space: pre-wrap; }
 .newsec { display: flex; gap: 8px; margin-bottom: 18px; }
 .center { max-width: 460px; margin: 12vh auto 0; text-align: center; }
 .center .card { padding: 24px 20px; margin-bottom: 14px; }
 .center p { color: var(--muted); }
-.steps { text-align: left; font-size: .92rem; color: var(--text); padding-left: 18px; }
 .member { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
 .member:last-child { border-bottom: 0; }
 .member.pend { background: var(--warnbg); }
@@ -130,6 +145,8 @@ var firebaseConfig = {
   var app = document.getElementById("app");
   var auth, db, authUser = null, me = null;
   var sections = [], items = [], users = [], secLoaded = false, itemsLoaded = false;
+  var messages = [], chatLoaded = false, chatSeen = null;
+  try { var cs = localStorage.getItem("chatSeen"); chatSeen = cs ? Number(cs) : null; } catch (e) {}
   var subMe = null, subData = [], activeRole = null;
   var view = "listas", editMode = false, drafts = {}, pendingDel = null, lastRemoved = null, toastTimer = null, msg = "";
 
@@ -161,26 +178,52 @@ var firebaseConfig = {
     inp.addEventListener("input", function () { drafts[key] = inp.value; });
     return inp;
   }
+  function setSeen(t) { chatSeen = t; try { localStorage.setItem("chatSeen", String(t)); } catch (e) {} }
+  function lastMsgTime() { return messages.length ? messages[messages.length - 1].createdAt : Date.now(); }
+  function unreadCount() {
+    if (!authUser || chatSeen === null) return 0;
+    var n = 0; messages.forEach(function (m) { if (m.uid !== authUser.uid && m.createdAt > chatSeen) n++; }); return n;
+  }
+  function softRender() { if (view === "chat" && document.getElementById("chatlist")) return; render(); }
+  function fmtTime(t) {
+    var d = new Date(t), n = new Date(), p = function (x) { return ("0" + x).slice(-2); };
+    var hm = p(d.getHours()) + ":" + p(d.getMinutes());
+    return d.toDateString() === n.toDateString() ? hm : p(d.getDate()) + "/" + p(d.getMonth() + 1) + " " + hm;
+  }
+  function claimItem(it) {
+    db.collection("items").doc(it.id).update({ claimedBy: authUser.uid, claimedByName: firstName() })
+      .catch(function (e) { showToast(e && e.code === "permission-denied" ? "Otra persona ya se encargó de esto." : "No se pudo tomar. Probá de nuevo.", false); });
+  }
+  function releaseItem(it) {
+    db.collection("items").doc(it.id).update({ claimedBy: null, claimedByName: null })
+      .catch(function (e) { showToast(errText(e, "No se pudo soltar."), false); });
+  }
   function clean(v) { return v.trim().replace(/\s+/g, " "); }
 
   /* ---------- datos ---------- */
-  function stopData() { subData.forEach(function (u) { try { u(); } catch (e) {} }); subData = []; sections = []; items = []; users = []; secLoaded = itemsLoaded = false; }
+  function stopData() { subData.forEach(function (u) { try { u(); } catch (e) {} }); subData = []; sections = []; items = []; users = []; messages = []; chatLoaded = false; secLoaded = itemsLoaded = false; }
   function fail() { msg = "Se perdió la conexión o falta permiso para leer los datos."; render(); }
   function startData(role) {
     if (role === "reader" || role === "editor" || role === "admin") {
       subData.push(db.collection("sections").orderBy("order").onSnapshot(function (s) {
         sections = s.docs.map(function (d) { return { id: d.id, name: String(d.data().name || ""), order: d.data().order || 0, color: d.data().color }; });
-        secLoaded = true; render();
+        secLoaded = true; softRender();
       }, fail));
       subData.push(db.collection("items").orderBy("createdAt").onSnapshot(function (s) {
-        items = s.docs.map(function (d) { var v = d.data(); return { id: d.id, text: String(v.text || ""), sectionId: String(v.sectionId || ""), createdAt: v.createdAt || 0, by: String(v.by || "") }; });
-        itemsLoaded = true; msg = ""; render();
+        items = s.docs.map(function (d) { var v = d.data(); return { id: d.id, text: String(v.text || ""), sectionId: String(v.sectionId || ""), createdAt: v.createdAt || 0, by: String(v.by || ""), claimedBy: String(v.claimedBy || ""), claimedByName: String(v.claimedByName || "") }; });
+        itemsLoaded = true; msg = ""; softRender();
+      }, fail));
+      subData.push(db.collection("messages").orderBy("createdAt", "desc").limit(100).onSnapshot(function (s) {
+        messages = s.docs.map(function (d) { var v = d.data(); return { id: d.id, text: String(v.text || ""), uid: String(v.uid || ""), name: String(v.name || ""), createdAt: v.createdAt || 0 }; }).reverse();
+        if (!chatLoaded && chatSeen === null) setSeen(lastMsgTime());
+        chatLoaded = true;
+        if (view === "chat" && document.getElementById("chatlist")) { setSeen(lastMsgTime()); updateChatList(); } else render();
       }, fail));
     }
     if (role === "admin") {
       subData.push(db.collection("users").onSnapshot(function (s) {
         users = s.docs.map(function (d) { var v = d.data(); return { uid: d.id, name: String(v.name || ""), email: String(v.email || ""), role: String(v.role || "pending"), createdAt: v.createdAt || 0 }; });
-        render();
+        softRender();
       }, function () {}));
     }
   }
@@ -264,7 +307,7 @@ var firebaseConfig = {
     var l = mk("div");
     l.appendChild(mk("h1", null, "Faltantes de las mesitas"));
     l.appendChild(mk("p", "sub", canWrite()
-      ? "Anotá lo que falta. Cuando alguien lo trae, tocá el círculo y desaparece para todos."
+      ? "Anotá lo que falta. Tocá la casilla de la derecha si te encargás vos; cuando alguien lo trae, tocá el círculo ✓ y desaparece para todos."
       : "Estás en modo lectura. Pedile a un admin que te dé permiso de editor."));
     var r = mk("div", "me");
     r.appendChild(mk("b", null, firstName()));
@@ -274,24 +317,72 @@ var firebaseConfig = {
     r.appendChild(out);
     top.appendChild(l); top.appendChild(r); app.appendChild(top);
 
+    var bar = mk("div", "bar");
+    var tab = function (label, v, badge) {
+      var b = mk("button", "btn" + (view === v ? " on" : ""), label); b.type = "button";
+      if (badge) b.appendChild(mk("span", "badge", String(badge)));
+      b.addEventListener("click", function () { view = v; if (v !== "listas") editMode = false; if (v === "chat") setSeen(lastMsgTime()); render(); });
+      return b;
+    };
+    bar.appendChild(tab("Listas", "listas", 0));
+    bar.appendChild(tab("💬 Chat", "chat", view === "chat" ? 0 : unreadCount()));
     if (isAdmin()) {
-      var bar = mk("div", "bar");
       var pend = users.filter(function (u) { return u.role === "pending"; }).length;
-      var t1 = mk("button", "btn" + (view === "listas" ? " on" : ""), "Listas"); t1.type = "button";
-      t1.addEventListener("click", function () { view = "listas"; render(); });
-      var t2 = mk("button", "btn" + (view === "miembros" ? " on" : ""), "Integrantes"); t2.type = "button";
-      if (pend) t2.appendChild(mk("span", "badge", String(pend)));
-      t2.addEventListener("click", function () { view = "miembros"; editMode = false; render(); });
-      bar.appendChild(t1); bar.appendChild(t2);
+      bar.appendChild(tab("Integrantes", "miembros", pend));
       if (view === "listas") {
         var te = mk("button", "btn" + (editMode ? " on" : ""), editMode ? "✓ Salir del modo admin" : "⚙ Modo admin"); te.type = "button";
         te.addEventListener("click", function () { editMode = !editMode; pendingDel = null; render(); });
         bar.appendChild(te);
       }
-      app.appendChild(bar);
     }
-    if (isAdmin() && view === "miembros") membersView(); else listsView();
+    app.appendChild(bar);
+    if (view === "chat") chatView(); else if (isAdmin() && view === "miembros") membersView(); else listsView();
     if (msg) app.appendChild(mk("p", "note err", msg));
+  }
+
+  function updateChatList() {
+    var list = document.getElementById("chatlist"); if (!list) return;
+    var stick = (list.scrollHeight - list.scrollTop - list.clientHeight) < 60 || list.dataset.first !== "1";
+    list.textContent = "";
+    if (chatLoaded && !messages.length) list.appendChild(mk("div", "empty", "Todavía no hay mensajes. ¡Escribí el primero!"));
+    messages.forEach(function (m) {
+      var mine = authUser && m.uid === authUser.uid;
+      var el = mk("div", "msg" + (mine ? " me" : ""));
+      var head = mk("div", "mh"); head.appendChild(mk("b", null, mine ? "Vos" : (m.name || "Alguien"))); head.appendChild(mk("span", "t", fmtTime(m.createdAt)));
+      if (mine || isAdmin()) {
+        var x = mk("button", "mdel", "✕"); x.type = "button"; x.setAttribute("aria-label", "Borrar mensaje");
+        x.addEventListener("click", function () { db.collection("messages").doc(m.id).delete().catch(function (e) { showToast(errText(e, "No se pudo borrar."), false); }); });
+        head.appendChild(x);
+      }
+      el.appendChild(head); el.appendChild(mk("p", null, m.text)); list.appendChild(el);
+    });
+    if (stick) { list.scrollTop = list.scrollHeight; list.dataset.first = "1"; }
+  }
+
+  function chatView() {
+    var card = mk("section", "card"); card.style.setProperty("--accent", "var(--a1)"); card.style.setProperty("--tint", "var(--t1)");
+    var head = mk("div", "card-head"); head.appendChild(mk("h2", null, "💬 Chat del grupo")); card.appendChild(head);
+    var list = mk("div"); list.id = "chatlist"; card.appendChild(list);
+    if (canWrite()) {
+      var add = mk("div", "add"); add.style.borderTop = "1px solid var(--line)"; add.style.borderBottom = "0";
+      var inp = draftInput("chat", "", "Escribí un mensaje…", 500); inp.enterKeyHint = "send";
+      var btn = mk("button", null, "Enviar"); btn.type = "button";
+      var go = function () {
+        var text = clean(inp.value); if (!text) return; btn.disabled = true;
+        db.collection("messages").add({ text: text, uid: authUser.uid, name: firstName(), createdAt: Date.now() })
+          .then(function () { delete drafts.chat; inp.value = ""; inp.focus(); })
+          .catch(function (e) { showToast(errText(e, "No se pudo enviar."), false); })
+          .then(function () { btn.disabled = false; });
+      };
+      btn.addEventListener("click", go);
+      inp.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); go(); } });
+      add.appendChild(inp); add.appendChild(btn); card.appendChild(add);
+    } else {
+      card.appendChild(mk("div", "empty", "Estás en modo lectura: podés leer el chat, pero no escribir."));
+    }
+    app.appendChild(card);
+    setSeen(lastMsgTime());
+    updateChatList();
   }
 
   function listsView() {
@@ -369,11 +460,12 @@ var firebaseConfig = {
       if (itemsLoaded && !mine.length) ul.appendChild(mk("li", "empty", "No falta nada por ahora ✓"));
       mine.forEach(function (it) {
         var li = mk("li");
+        var mineClaim = !!(it.claimedBy && authUser && it.claimedBy === authUser.uid), otherClaim = !!(it.claimedBy && !mineClaim);
         if (canWrite()) {
           var b = mk("button", "check", "✓"); b.type = "button"; b.setAttribute("aria-label", "Marcar como resuelto: " + it.text);
           b.addEventListener("click", function () {
             li.classList.add("out");
-            lastRemoved = { id: it.id, data: { text: it.text, sectionId: it.sectionId, createdAt: it.createdAt, by: it.by } };
+            lastRemoved = { id: it.id, data: { text: it.text, sectionId: it.sectionId, createdAt: it.createdAt, by: it.by, claimedBy: it.claimedBy || null, claimedByName: it.claimedByName || null } };
             setTimeout(function () {
               db.collection("items").doc(it.id).delete().then(function () { showToast("Resuelto: " + it.text, true); })
                 .catch(function (e) { li.classList.remove("out"); lastRemoved = null; msg = errText(e, "No se pudo marcar."); render(); });
@@ -392,8 +484,20 @@ var firebaseConfig = {
           li.appendChild(ti);
         } else {
           var tx = mk("span", "txt", it.text);
-          if (it.by) tx.appendChild(mk("small", null, "anotó " + it.by));
+          var info = [];
+          if (it.by) info.push("anotó " + it.by);
+          if (it.claimedBy) info.push("🙋 se encarga " + (mineClaim ? "vos" : (it.claimedByName || "alguien")));
+          if (info.length) tx.appendChild(mk("small", null, info.join(" · ")));
           li.appendChild(tx);
+        }
+        if (canWrite() || it.claimedBy) {
+          var cb = mk("button", "claim" + (mineClaim ? " mine" : (otherClaim ? " other" : ""))); cb.type = "button";
+          cb.appendChild(mk("span", "box", mineClaim ? "✓" : (otherClaim ? "🙋" : "")));
+          cb.appendChild(mk("span", "lab", mineClaim ? "Yo me encargo" : (otherClaim ? (it.claimedByName || "Alguien") : "Me encargo")));
+          cb.disabled = !(canWrite() && (!it.claimedBy || mineClaim || isAdmin()));
+          cb.setAttribute("aria-label", it.claimedBy ? ("Se encarga " + (mineClaim ? "vos" : (it.claimedByName || "alguien")) + ": " + it.text) : ("Me encargo yo: " + it.text));
+          cb.addEventListener("click", function () { if (!it.claimedBy) claimItem(it); else releaseItem(it); });
+          li.appendChild(cb);
         }
         ul.appendChild(li);
       });
